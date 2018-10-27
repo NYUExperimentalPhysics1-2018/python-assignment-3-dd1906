@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 tank1Color = 'b'
 tank2Color = 'r'
 obstacleColor = 'k'
-
+20
 ##### functions you need to implement #####
 def trajectory (x0,y0,v,theta,g = 9.8, npts = 1000):
     """
@@ -44,7 +44,19 @@ def trajectory (x0,y0,v,theta,g = 9.8, npts = 1000):
     0.5g t^2 - vsin(theta) t - y0 = 0
     t_final = v/g sin(theta) + sqrt((v/g)^2 sin^2(theta) + 2 y0/g)
     """
-  
+    theta = np.deg2rad(theta)
+    
+    velx = v * np.cos(theta)
+    vely = v * np.sin(theta)
+    
+    timeFinal = (vely/g)*np.sin(theta) + np.sqrt((((v/g)**2)*(np.sin(theta)**2)+(2*(y0/g))))
+    
+    t = np.linspace(0, timeFinal, npts)
+    
+    x = x0 + (velx * t)
+    y = y0 + (vely * t) - (.5*g*(t**2))
+    
+    return(x,y)
 
 def firstInBox (x,y,box):
     """
@@ -65,8 +77,18 @@ def firstInBox (x,y,box):
         y[j] is in [bottom,top]
         -1 if the line x,y does not go through the box
     """
-
-
+    
+    #collabed with Kristina E
+    
+    inbox = False
+    
+    for j in range(0, len(x)):
+        if x[j] >= box[0] and x[j] <= box[1] and y[j] >= box[2] and y[j] <= box[3]:
+            inbox = True
+            return j
+            break
+    if inbox == False:
+        return -1
     
 
 def tankShot (targetBox, obstacleBox, x0, y0, v, theta, g = 9.8):
@@ -96,9 +118,30 @@ def tankShot (targetBox, obstacleBox, x0, y0, v, theta, g = 9.8):
     obstacle box
     draws the truncated trajectory in current plot window
     """
+    #come back to this if you hate yourself enough
+    #I realize there must have been an easier way to do it
+        #but this is how i did it...
     
-
-
+    x, y = trajectory(x0, y0, v, theta)
+    
+    #if the obstacle is hit, return 0, endTrajectory at the obstacle
+    if firstInBox(x, y, obstacleBox) != -1:
+        xcut, ycut = endTrajectoryAtIntersection(x, y, obstacleBox)
+        plt.plot(xcut, ycut)
+        return 0
+    
+    #if the target is hit, return 1, endTrajectory at target
+    elif firstInBox(x, y, targetBox) != -1:
+        xcut, ycut = endTrajectoryAtIntersection(x, y, targetBox)
+        plt.plot(xcut, ycut)
+        return 1
+    
+    #if nothing is hit return 0, plot regular x, y
+    else: 
+        plt.plot(x, y)
+        return 0
+        
+        
 def drawBoard (tank1box, tank2box, obstacleBox, playerNum):
     """
     draws the game board, pre-shot
@@ -114,9 +157,19 @@ def drawBoard (tank1box, tank2box, obstacleBox, playerNum):
         1 or 2 -- who's turn it is to shoot
  
     """    
-    #your code here
+    
+    plt.clf()
+    
+    drawBox(tank1box, 'c')
+    drawBox(tank2box, 'm')
+    
+    drawBox(obstacleBox, 'k')
+    
+    plt.xlim(0, 100)
+    plt.ylim(0, 100)
     
     showWindow() #this makes the figure window show up
+
 
 def oneTurn (tank1box, tank2box, obstacleBox, playerNum, g = 9.8):   
     """
@@ -143,7 +196,31 @@ def oneTurn (tank1box, tank2box, obstacleBox, playerNum, g = 9.8):
     displays trajectory (shot originates from center of tank)
     returns 0 for miss, 1 or 2 for victory
     """        
-
+        
+    drawBoard(tank1box, tank2box, obstacleBox, playerNum)
+    
+    theta = getNumberInput("what angle are do you want to shoot from (in degrees)?")
+    v = getNumberInput("how fast do you want to shoot (in m/s)?")
+    
+    if playerNum == 1:
+        origin = tank1box
+        target = tank2box
+    elif playerNum == 2:
+        origin = tank2box
+        target = tank1box
+        
+    #x0, y0 are the center of the origin box
+    x0 = (origin[0]+origin[1])/2
+    y0 = (origin[2]+origin[3])/2
+    
+    #calculate and draw the outcome of the shot
+    outcome = tankShot(target, obstacleBox, x0, y0, v, theta)
+    
+    #if there was a hit, return playerNum indicating a winner, otherwise return 0
+    if outcome == 1:
+        return playerNum
+    else:
+        return 0
     
 
 def playGame(tank1box, tank2box, obstacleBox, g = 9.8):
@@ -162,8 +239,25 @@ def playGame(tank1box, tank2box, obstacleBox, g = 9.8):
         accel due to gravity (default 9.8)
     """
     
+    playerNum = 1
     
+    while True:
+        turn = oneTurn(tank1box, tank2box, obstacleBox, playerNum)
+        if turn != 0:
+            print("Player", turn, ", you won!", sep = "")
+            break
         
+        else:
+            print("Player", playerNum, ", you lost!", sep = "")
+            keep = input('Enter y to continue:')
+            if keep != 'y':
+                break
+            if playerNum == 1:
+                playerNum = 2
+            elif playerNum == 2:
+                playerNum = 1
+
+    
 ##### functions provided to you #####
 def getNumberInput (prompt, validRange = [-np.Inf, np.Inf]):
     """displays prompt and converts user input to a number
