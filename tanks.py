@@ -49,7 +49,7 @@ def trajectory (x0,y0,v,theta,g = 9.8, npts = 1000):
     velx = v * np.cos(theta)
     vely = v * np.sin(theta)
     
-    timeFinal = (vely/g)*np.sin(theta) + np.sqrt((((v/g)**2)*(np.sin(theta)**2)+(2*(y0/g))))
+    timeFinal = (vely/g) + np.sqrt((((v/g)**2)*(np.sin(theta)**2)+(2*(y0/g))))
     
     t = np.linspace(0, timeFinal, npts)
     
